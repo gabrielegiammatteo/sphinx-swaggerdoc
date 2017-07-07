@@ -31,7 +31,7 @@ class SwaggerV2DocDirective(Directive):
         s = requests.Session()
         s.mount('file://', FileAdapter())
         r = s.get(url)
-        return r.json()
+        return self.sanitize_api_desc(r.json())
 
     def create_item(self, key, value):
         para = nodes.paragraph()
@@ -166,6 +166,21 @@ class SwaggerV2DocDirective(Directive):
         if len(invalid_tags) > 0:
             msg = self.reporter.error("Error. Tag '%s' not found in Swagger URL %s." % (invalid_tags[0], api_url))
             return [msg]
+
+    def sanitize_api_desc(self, api_desc):
+        """Swagger specification allows to have a parameter list at the same level of methods, while this processor
+        assumes that parameter lists are only as children of methods. This method removes the parameter lists from the 
+        path level to the method level.
+        Flask-RestPlus generate swagger.json files like this (see https://github.com/noirbizarre/flask-restplus/issues/196)
+        """
+        for path, methods in api_desc['paths'].items():
+            if 'parameters' in methods:
+                for method_type, method in methods.items():
+                    if not method_type == 'parameters' and 'parameters' in method:
+                        method['parameters'].extend(methods['parameters'])
+                del methods['parameters']
+
+        return api_desc
 
     def run(self):
         self.reporter = self.state.document.reporter

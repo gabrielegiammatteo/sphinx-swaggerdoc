@@ -176,8 +176,11 @@ class SwaggerV2DocDirective(Directive):
         for path, methods in api_desc['paths'].items():
             if 'parameters' in methods:
                 for method_type, method in methods.items():
-                    if not method_type == 'parameters' and 'parameters' in method:
-                        method['parameters'].extend(methods['parameters'])
+                    if not method_type == 'parameters':
+                        if 'parameters' in method:
+                            method['parameters'].extend(methods['parameters'])
+                        else:
+                            method['parameters'] = methods['parameters']
                 del methods['parameters']
 
         return api_desc
